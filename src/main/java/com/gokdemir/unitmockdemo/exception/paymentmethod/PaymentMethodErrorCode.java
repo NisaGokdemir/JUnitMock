@@ -4,7 +4,8 @@ import com.gokdemir.unitmockdemo.exception.base.BaseErrorCode;
 import org.springframework.http.HttpStatus;
 
 public enum PaymentMethodErrorCode implements BaseErrorCode{
-    PAYMENT_METHOD_NOT_FOUND("PAYMENT_METHOD-404", "Payment method not found", HttpStatus.NOT_FOUND);
+    PAYMENT_METHOD_NOT_FOUND("PAYMENT_METHOD-404", "Payment method not found", HttpStatus.NOT_FOUND),
+    PAYMENT_METHOD_SAVE_FAILED("PAYMENT_METHOD_SAVE_FAILED", "Payment method not save",HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String message;

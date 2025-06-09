@@ -2,7 +2,6 @@ package com.gokdemir.unitmockdemo.service.impl;
 
 import com.gokdemir.unitmockdemo.dto.DtoPayment;
 import com.gokdemir.unitmockdemo.dto.DtoPaymentIU;
-import com.gokdemir.unitmockdemo.exception.base.BaseDomainException;
 import com.gokdemir.unitmockdemo.exception.payment.PaymentDomainException;
 import com.gokdemir.unitmockdemo.exception.payment.PaymentErrorCode;
 import com.gokdemir.unitmockdemo.exception.paymentmethod.PaymentMethodDomainException;
@@ -15,7 +14,6 @@ import com.gokdemir.unitmockdemo.repository.PaymentRepository;
 import com.gokdemir.unitmockdemo.service.IPaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -52,13 +50,20 @@ public class PaymentServiceImpl implements IPaymentService {
         Payment payment = createPayment(dtoPaymentIU);
         payment.setPaymentMethod(findPaymentMethodById(dtoPaymentIU.getPaymentMethodId()));
         paymentRepository.save(payment);
-        return paymentMapper.entityToDtoPayment(payment);
+        DtoPayment result = paymentMapper.entityToDtoPayment(payment);
+        if (result == null) {
+            throw new PaymentDomainException(PaymentErrorCode.PAYMENT_SAVE_FAILED);
+        }
+        return result;
     }
 
     @Override
     public DtoPayment updatePayment(Long paymentId, DtoPaymentIU dtoPaymentIU) {
         Payment payment = getPaymentById(paymentId);
         paymentMapper.updatePaymentFromDto(dtoPaymentIU, payment);
+        if (payment.getAmount() == null || payment.getAmount() <= 0 || payment.getPaymentMethod().getId() == null) {
+            throw new PaymentDomainException(PaymentErrorCode.PAYMENT_AMOUNT_INVALID);
+        }
         payment.setPaymentMethod(findPaymentMethodById(dtoPaymentIU.getPaymentMethodId()));
         paymentRepository.save(payment);
         return paymentMapper.entityToDtoPayment(payment);
@@ -79,12 +84,22 @@ public class PaymentServiceImpl implements IPaymentService {
     @Override
     public List<DtoPayment> getAllPayments() {
         List<Payment> payments = paymentRepository.findAll();
-        return paymentMapper.entitiesToDtoPayments(payments);
+        if (payments.isEmpty()) {
+            throw new PaymentDomainException(PaymentErrorCode.PAYMENT_NOT_FOUND);
+        }
+        List<DtoPayment> result = paymentMapper.entitiesToDtoPayments(payments);
+        if (result == null || result.isEmpty()) {
+            throw new PaymentDomainException(PaymentErrorCode.PAYMENT_NOT_FOUND);
+        }
+        return result;
     }
 
     @Override
     public Page<DtoPayment> getPageableResponse(Pageable pageable) {
         Page<Payment> payments = paymentRepository.findAllPageable(pageable);
+        if (payments.isEmpty()) {
+            throw new PaymentDomainException(PaymentErrorCode.PAYMENT_NOT_FOUND);
+        }
         return payments.map(paymentMapper::entityToDtoPayment);
     }
 }
